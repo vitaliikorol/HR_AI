@@ -5,7 +5,7 @@ import pypdf
 import docx
 import pandas as pd
 import os
-import io
+import base64
 import time
 
 # --- 1. НАЛАШТУВАННЯ СТОРІНКИ ---
@@ -16,27 +16,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. CSS СТИЛІЗАЦІЯ (ДИЗАЙН) ---
+# --- 2. CSS СТИЛІЗАЦІЯ ---
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     
-    /* --- ЦЕНТРУВАННЯ ЛОГОТИПА (ВАЖЛИВО) --- */
-    /* Це змушує будь-яке зображення в Streamlit вирівнюватися по центру */
-    div[data-testid="stImage"] {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 100%;
-    }
-
-    div[data-testid="stImage"] > img {
-        /* Якість зображення */
-        object-fit: contain;
-    }
-    
-    /* --- ТЕКСТИ --- */
+    /* ТЕКСТИ */
     .title-text {
         text-align: center;
         color: #2c3e50;
@@ -56,10 +42,8 @@ st.markdown("""
         margin-bottom: 30px;
     }
     
-    /* --- ЗАВАНТАЖУВАЧ ФАЙЛІВ --- */
-    [data-testid='stFileUploaderDropzone'] div div span {
-        display: none;
-    }
+    /* ЗАВАНТАЖУВАЧ */
+    [data-testid='stFileUploaderDropzone'] div div span { display: none; }
     [data-testid='stFileUploaderDropzone'] div div::after {
         content: "Перетягніть файли сюди • PDF, DOCX";
         visibility: visible;
@@ -68,10 +52,7 @@ st.markdown("""
         color: #555;
         margin-bottom: 10px;
     }
-    [data-testid='stFileUploaderDropzone'] button {
-        position: relative;
-        color: transparent !important;
-    }
+    [data-testid='stFileUploaderDropzone'] button { position: relative; color: transparent !important; }
     [data-testid='stFileUploaderDropzone'] button::after {
         content: "Обрати файли";
         position: absolute;
@@ -82,7 +63,7 @@ st.markdown("""
         white-space: nowrap;
     }
 
-    /* --- ПОМАРАНЧЕВА КНОПКА --- */
+    /* ПОМАРАНЧЕВА КНОПКА */
     .stButton>button {
         width: 100%;
         background: linear-gradient(90deg, #FF8C00 0%, #FF4500 100%);
@@ -120,6 +101,11 @@ st.markdown("""
 
 # --- 3. ФУНКЦІЇ ---
 
+# Функція для "залізобетонного" відображення логотипа
+def get_base64_image(image_path):
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode()
+
 def read_file(uploaded_file):
     try:
         if uploaded_file.name.endswith('.pdf'):
@@ -135,7 +121,6 @@ def read_file(uploaded_file):
 def call_gemini_json(api_key, prompt):
     base_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
     model_name = "gemini-1.5-flash"
-    
     try:
         r = requests.get(base_url)
         if r.status_code == 200:
@@ -145,45 +130,42 @@ def call_gemini_json(api_key, prompt):
                     if 'flash' in m['name']: 
                         model_name = m['name'].replace('models/', '')
                         break
-    except:
-        pass
+    except: pass
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
     headers = {'Content-Type': 'application/json'}
     final_prompt = prompt + "\n\nReturn the result strictly as a JSON Array of objects."
-    
     data = {
         "contents": [{"parts": [{"text": final_prompt}]}],
-        "generationConfig": {
-            "temperature": 0.2, 
-            "responseMimeType": "application/json"
-        }
+        "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
     }
-    
     try:
         response = requests.post(url, headers=headers, data=json.dumps(data))
         if response.status_code != 200: return f"Error: {response.text}"
         return response.json()['candidates'][0]['content']['parts'][0]['text']
-    except Exception as e:
-        return f"Error: {str(e)}"
+    except Exception as e: return f"Error: {str(e)}"
 
-# --- 4. ЗБЕРЕЖЕННЯ СТАНУ ---
+# --- 4. ІНТЕРФЕЙС ---
+
 if 'results_df' not in st.session_state:
     st.session_state.results_df = None
-
-# --- ІНТЕРФЕЙС ---
 
 with st.sidebar:
     st.header("🔐 Налаштування")
     api_key = st.text_input("Google API Key", type="password")
-    if api_key:
-        st.success("Ключ прийнято")
 
-# --- ШАПКА ПО ЦЕНТРУ (НОВА ЛОГІКА) ---
+# --- ШАПКА (HTML ІН'ЄКЦІЯ ДЛЯ ЦЕНТРУВАННЯ) ---
 
-# Ми не використовуємо колонки для логотипа, бо CSS тепер сам центрує будь-яку картинку
 if os.path.exists("logo.png"):
-    st.image("logo.png", width=200) # CSS зробить це по центру
+    # Перетворюємо картинку в код і вставляємо через HTML <center>
+    # Це неможливо зрушити вліво, воно завжди буде по центру
+    img_base64 = get_base64_image("logo.png")
+    st.markdown(
+        f'<div style="text-align: center; margin-bottom: 20px;">'
+        f'<img src="data:image/png;base64,{img_base64}" width="200">'
+        f'</div>',
+        unsafe_allow_html=True
+    )
 else:
     st.markdown("<div style='text-align: center;'><h2>👔</h2></div>", unsafe_allow_html=True)
 
@@ -193,64 +175,40 @@ st.markdown('<p class="subtitle-text">Ваш персональний поміч
 st.markdown("---")
 
 # --- ОСНОВНА ЧАСТИНА ---
-
 c1, c2 = st.columns(2)
 
-# ВАКАНСІЯ
 with c1:
     st.subheader("📝 1. Вакансія")
     tab1, tab2 = st.tabs(["📤 Завантажити файл", "✍️ Вставити текст"])
-    
     job_text_final = ""
-    
     with tab1:
         job_file = st.file_uploader("Файл вакансії", type=["pdf", "docx"], key="j_up", label_visibility="collapsed")
         if job_file:
             extracted = read_file(job_file)
-            if extracted:
-                job_text_final = extracted
-                st.success("Файл прочитано")
-    
+            if extracted: job_text_final = extracted; st.success("Файл прочитано")
     with tab2:
         text_input = st.text_area("Вставте текст:", height=300, key="j_txt")
-        if not job_text_final and text_input:
-            job_text_final = text_input
+        if not job_text_final and text_input: job_text_final = text_input
 
-# РЕЗЮМЕ
 with c2:
     st.subheader("🗂️ 2. Кандидати")
     uploaded_files = st.file_uploader("Резюме", type=["pdf", "docx"], accept_multiple_files=True, label_visibility="collapsed")
-    if uploaded_files:
-        st.info(f"✅ Готово: {len(uploaded_files)} файлів")
+    if uploaded_files: st.info(f"✅ Готово: {len(uploaded_files)} файлів")
 
 st.markdown("###")
 
-# --- КНОПКА ПО ЦЕНТРУ (НОВА ПРОПОРЦІЯ) ---
-# Використовуємо пропорцію [3, 2, 3]. Це означає:
-# 3 частини зліва (пусто), 2 частини посередині (кнопка), 3 частини справа (пусто).
-# Це ідеально центрує кнопку і не дає їй розтягнутися на весь екран.
-b1, b2, b3 = st.columns([3, 2, 3])
-
+# --- КНОПКА (ТОЧНЕ ЦЕНТРУВАННЯ) ---
+# Пропорція [5, 4, 5] затискає кнопку посередині
+b1, b2, b3 = st.columns([5, 4, 5])
 with b2:
     start_btn = st.button("Знайти ідеального кандидата", type="primary")
 
 if start_btn:
     st.session_state.results_df = None
-    
-    if not api_key:
-        st.error("Введіть API Key зліва.")
-    elif not job_text_final or not uploaded_files:
-        st.warning("Завантажте вакансію та резюме.")
+    if not api_key: st.error("Введіть API Key зліва.")
+    elif not job_text_final or not uploaded_files: st.warning("Завантажте вакансію та резюме.")
     else:
-        # АНІМАЦІЯ
-        loading_phrases = [
-            "🧠 Аналізую вимоги...", 
-            "⚖️ Вмикаю режим суворого відбору...",
-            "🔍 Шукаю приховані ризики...",
-            "💎 Відсіюю невідповідних кандидатів...",
-            "🚀 Формую фінальний рейтинг..."
-        ]
-        
+        loading_phrases = ["🧠 Аналізую вимоги...", "⚖️ Вмикаю режим суворого відбору...", "🔍 Шукаю приховані ризики...", "💎 Відсіюю невідповідних кандидатів...", "🚀 Формую фінальний рейтинг..."]
         status_container = st.empty()
         for phrase in loading_phrases:
             status_container.markdown(f'<div class="loading-text">{phrase}</div>', unsafe_allow_html=True)
@@ -262,19 +220,15 @@ if start_btn:
             clean_content = content.replace("\n", " ")[:6000]
             full_text += f"\n--- File: {f.name} ---\n{clean_content}"
         
-        # --- ПРОМПТ ---
         prompt = f"""
         ##Роль
         Ти — ШІ-асистент рекрутера.
-
         ##Задачі
         Допомогти в попередній оцінці кандидатів.
         !!ВАЖЛИВО: Оцінюй максимально строго. Відсів важливіше приємних коментарів.
-
         ##Дані
         Вакансія: {job_text_final}
         Резюме: {full_text}
-
         ##Результат (JSON)
         Поверни масив об'єктів:
         1. "Name"
@@ -285,55 +239,28 @@ if start_btn:
         6. "Score" (1-10)
         7. "Verdict" ("Не варто спілкуватися" [1-3], "Резерв" [4-6], "Запросити" [7-10])
         8. "Risks"
-
         Мова: Українська.
         """
-        
         raw_response = call_gemini_json(api_key, prompt)
         status_container.empty()
-        
         try:
             clean_json = raw_response.replace("```json", "").replace("```", "").strip()
             data = json.loads(clean_json)
             df = pd.DataFrame(data)
-            
-            if 'Score' in df.columns:
-                df = df.sort_values(by='Score', ascending=False)
-            
-            display_df = df.rename(columns={
-                "Name": "Кандидат", "Age_Exp": "Досвід", "Strengths": "Плюси",
-                "Weaknesses": "Мінуси", "Highlights": "Важливе", "Score": "Бал", 
-                "Verdict": "Вердикт", "Risks": "Ризики"
-            })
-            
+            if 'Score' in df.columns: df = df.sort_values(by='Score', ascending=False)
+            display_df = df.rename(columns={"Name": "Кандидат", "Age_Exp": "Досвід", "Strengths": "Плюси", "Weaknesses": "Мінуси", "Highlights": "Важливе", "Score": "Бал", "Verdict": "Вердикт", "Risks": "Ризики"})
             st.session_state.results_df = display_df
+        except Exception as e: st.error("Помилка обробки."); st.code(raw_response)
 
-        except Exception as e:
-            st.error("Помилка обробки.")
-            st.code(raw_response)
-
-# ВІДОБРАЖЕННЯ
 if st.session_state.results_df is not None:
     df = st.session_state.results_df
-    
     st.success("✅ Аналіз завершено!")
-    
     def color_rows(val):
         s = str(val).lower()
         if 'запросити' in s: return 'background-color: #dcfce7; color: #166534; font-weight: bold'
         if 'не варто' in s: return 'background-color: #fee2e2; color: #991b1b'
         return 'background-color: #fef9c3; color: #854d0e'
-
     st.dataframe(df.style.map(color_rows, subset=['Вердикт']), use_container_width=True, hide_index=True)
-    
     st.markdown("###")
-    
     csv_data = df.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 Скачати Excel таблицю",
-        data=csv_data,
-        file_name="recruiter_assistant_report.csv",
-        mime="text/csv",
-        use_container_width=True
-    )
-    
+    st.download_button(label="📥 Скачати Excel таблицю", data=csv_data, file_name="recruiter_assistant_report.csv", mime="text/csv", use_container_width=True)
