@@ -22,6 +22,20 @@ st.markdown("""
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     
+    /* --- ЦЕНТРУВАННЯ ЛОГОТИПА (ВАЖЛИВО) --- */
+    /* Це змушує будь-яке зображення в Streamlit вирівнюватися по центру */
+    div[data-testid="stImage"] {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+    }
+
+    div[data-testid="stImage"] > img {
+        /* Якість зображення */
+        object-fit: contain;
+    }
+    
     /* --- ТЕКСТИ --- */
     .title-text {
         text-align: center;
@@ -42,12 +56,11 @@ st.markdown("""
         margin-bottom: 30px;
     }
     
-    /* --- ПЕРЕКЛАД ЗАВАНТАЖУВАЧА ФАЙЛІВ --- */
+    /* --- ЗАВАНТАЖУВАЧ ФАЙЛІВ --- */
     [data-testid='stFileUploaderDropzone'] div div span {
         display: none;
     }
     [data-testid='stFileUploaderDropzone'] div div::after {
-        /* ТУТ ЗМІНИЛИ ТЕКСТ (ПРИБРАЛИ 200MB) */
         content: "Перетягніть файли сюди • PDF, DOCX";
         visibility: visible;
         display: block;
@@ -88,7 +101,7 @@ st.markdown("""
         background: linear-gradient(90deg, #FFA500 0%, #FF6347 100%);
     }
     
-    /* --- АНІМАЦІЯ --- */
+    /* АНІМАЦІЯ */
     .loading-text {
         font-size: 24px;
         font-weight: bold;
@@ -101,12 +114,6 @@ st.markdown("""
         0% { opacity: 0.6; }
         50% { opacity: 1; }
         100% { opacity: 0.6; }
-    }
-    
-    /* Центрування зображень всередині колонок */
-    div[data-testid="stImage"] {
-        display: flex;
-        justify-content: center;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -172,16 +179,13 @@ with st.sidebar:
     if api_key:
         st.success("Ключ прийнято")
 
-# --- ШАПКА ПО ЦЕНТРУ ---
+# --- ШАПКА ПО ЦЕНТРУ (НОВА ЛОГІКА) ---
 
-# Використовуємо 3 колонки, щоб логотип був точно по центру
-c1, c2, c3 = st.columns([1, 1, 1])
-
-with c2:
-    if os.path.exists("logo.png"):
-        st.image("logo.png", width=200)
-    else:
-        st.markdown("<div style='text-align: center;'><h2>👔</h2></div>", unsafe_allow_html=True)
+# Ми не використовуємо колонки для логотипа, бо CSS тепер сам центрує будь-яку картинку
+if os.path.exists("logo.png"):
+    st.image("logo.png", width=200) # CSS зробить це по центру
+else:
+    st.markdown("<div style='text-align: center;'><h2>👔</h2></div>", unsafe_allow_html=True)
 
 st.markdown('<h1 class="title-text">ШІ-асистент рекрутера</h1>', unsafe_allow_html=True)
 st.markdown('<p class="subtitle-text">Ваш персональний помічник у пошуку талантів</p>', unsafe_allow_html=True)
@@ -221,9 +225,11 @@ with c2:
 
 st.markdown("###")
 
-# --- КНОПКА ПО ЦЕНТРУ ---
-# Створюємо 3 колонки: порожня - кнопка - порожня. Це центрує кнопку.
-b1, b2, b3 = st.columns([1, 2, 1])
+# --- КНОПКА ПО ЦЕНТРУ (НОВА ПРОПОРЦІЯ) ---
+# Використовуємо пропорцію [3, 2, 3]. Це означає:
+# 3 частини зліва (пусто), 2 частини посередині (кнопка), 3 частини справа (пусто).
+# Це ідеально центрує кнопку і не дає їй розтягнутися на весь екран.
+b1, b2, b3 = st.columns([3, 2, 3])
 
 with b2:
     start_btn = st.button("Знайти ідеального кандидата", type="primary")
@@ -330,3 +336,4 @@ if st.session_state.results_df is not None:
         mime="text/csv",
         use_container_width=True
     )
+    
