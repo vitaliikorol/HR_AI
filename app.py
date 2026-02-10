@@ -290,3 +290,4 @@ if st.session_state.results_df is not None:
     st.markdown("###")
     csv_data = df.to_csv(index=False).encode('utf-8')
     st.download_button(label="📥 Скачати Excel таблицю", data=csv_data, file_name="recruiter_assistant_report.csv", mime="text/csv", use_container_width=True)
+    # Force update v2
