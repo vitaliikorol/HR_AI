@@ -63,14 +63,15 @@ st.markdown("""
         white-space: nowrap;
     }
 
-    /* ПОМАРАНЧЕВА КНОПКА */
+    /* ПОМАРАНЧЕВА КНОПКА (ВИПРАВЛЕНА ТОВЩИНА) */
     .stButton>button {
         width: 100%;
         background: linear-gradient(90deg, #FF8C00 0%, #FF4500 100%);
         color: white;
         border-radius: 12px;
         font-weight: bold;
-        padding: 16px;
+        /* Зменшив відступи, щоб кнопка не була товстою */
+        padding: 12px 24px; 
         font-size: 18px;
         border: none;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -153,7 +154,7 @@ with st.sidebar:
     st.header("🔐 Налаштування")
     api_key = st.text_input("Google API Key", type="password")
 
-# --- ШАПКА (ЛОГОТИП ПО ЦЕНТРУ) ---
+# --- ШАПКА ---
 
 if os.path.exists("logo.png"):
     img_base64 = get_base64_image("logo.png")
@@ -174,50 +175,76 @@ st.markdown("---")
 # --- ОСНОВНА ЧАСТИНА ---
 c1, c2 = st.columns(2)
 
+# --- БЛОК ВАКАНСІЇ ---
 with c1:
-    st.subheader("📝 1. Вакансія")
+    st.subheader("📝 Вакансія") # Прибрав нумерацію
+    st.caption("Завантажте файл з описом вакансії або вставте текст вручну.") # Інструкція
+    
     tab1, tab2 = st.tabs(["📤 Завантажити файл", "✍️ Вставити текст"])
     job_text_final = ""
+    
     with tab1:
         job_file = st.file_uploader("Файл вакансії", type=["pdf", "docx"], key="j_up", label_visibility="collapsed")
         if job_file:
             extracted = read_file(job_file)
             if extracted: job_text_final = extracted; st.success("Файл прочитано")
     with tab2:
-        text_input = st.text_area("Вставте текст:", height=300, key="j_txt")
+        text_input = st.text_area("Вставте текст вакансії:", height=300, key="j_txt")
         if not job_text_final and text_input: job_text_final = text_input
 
+# --- БЛОК КАНДИДАТІВ ---
 with c2:
-    st.subheader("🗂️ 2. Кандидати")
-    uploaded_files = st.file_uploader("Резюме", type=["pdf", "docx"], accept_multiple_files=True, label_visibility="collapsed")
-    if uploaded_files: st.info(f"✅ Готово: {len(uploaded_files)} файлів")
+    st.subheader("🗂️ Кандидати") # Прибрав нумерацію
+    st.caption("Додайте резюме кандидатів файлами або текстом для аналізу.") # Інструкція
+    
+    # ТЕПЕР ТУТ ТЕЖ ВКЛАДКИ
+    tab_c1, tab_c2 = st.tabs(["📤 Завантажити файли", "✍️ Вставити текст"])
+    
+    uploaded_files = []
+    candidates_text_input = ""
+
+    with tab_c1:
+        uploaded_files = st.file_uploader("Резюме", type=["pdf", "docx"], accept_multiple_files=True, label_visibility="collapsed", key="c_up")
+        if uploaded_files: st.info(f"✅ Завантажено файлів: {len(uploaded_files)}")
+    
+    with tab_c2:
+        candidates_text_input = st.text_area("Вставте текст резюме (можна декілька підряд):", height=300, key="c_txt")
 
 st.markdown("###")
 
-# --- КНОПКА ПО ЦЕНТРУ (СТРОГА ПРОПОРЦІЯ) ---
-# [2.5, 1, 2.5] - це 6 частин. 1 частина посередині.
-# Це гарантує строгий центр.
-b1, b2, b3 = st.columns([2.5, 1, 2.5])
-
+# --- КНОПКА ПО ЦЕНТРУ ---
+# Використовуємо [5, 4, 5] для центрування, але CSS зробить її нормальною по висоті
+b1, b2, b3 = st.columns([5, 4, 5])
 with b2:
     start_btn = st.button("Знайти ідеального кандидата", type="primary")
 
 if start_btn:
     st.session_state.results_df = None
+    
+    # Збираємо текст кандидатів з обох джерел (файли + текст)
+    full_candidates_text = ""
+    
+    # 1. Читаємо файли
+    if uploaded_files:
+        for f in uploaded_files:
+            content = read_file(f)
+            clean_content = content.replace("\n", " ")[:6000]
+            full_candidates_text += f"\n--- File: {f.name} ---\n{clean_content}"
+    
+    # 2. Додаємо вставлений текст
+    if candidates_text_input:
+        full_candidates_text += f"\n--- Pasted Text ---\n{candidates_text_input}"
+
+    # Перевірки
     if not api_key: st.error("Введіть API Key зліва.")
-    elif not job_text_final or not uploaded_files: st.warning("Завантажте вакансію та резюме.")
+    elif not job_text_final: st.warning("Відсутній опис вакансії (файл або текст).")
+    elif not full_candidates_text: st.warning("Відсутні резюме кандидатів (файли або текст).")
     else:
         loading_phrases = ["🧠 Аналізую вимоги...", "⚖️ Вмикаю режим суворого відбору...", "🔍 Шукаю приховані ризики...", "💎 Відсіюю невідповідних кандидатів...", "🚀 Формую фінальний рейтинг..."]
         status_container = st.empty()
         for phrase in loading_phrases:
             status_container.markdown(f'<div class="loading-text">{phrase}</div>', unsafe_allow_html=True)
             time.sleep(0.7)
-            
-        full_text = ""
-        for f in uploaded_files:
-            content = read_file(f)
-            clean_content = content.replace("\n", " ")[:6000]
-            full_text += f"\n--- File: {f.name} ---\n{clean_content}"
         
         prompt = f"""
         ##Роль
@@ -227,7 +254,7 @@ if start_btn:
         !!ВАЖЛИВО: Оцінюй максимально строго. Відсів важливіше приємних коментарів.
         ##Дані
         Вакансія: {job_text_final}
-        Резюме: {full_text}
+        Резюме: {full_candidates_text}
         ##Результат (JSON)
         Поверни масив об'єктів:
         1. "Name"
