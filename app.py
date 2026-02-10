@@ -63,18 +63,19 @@ st.markdown("""
         white-space: nowrap;
     }
 
-    /* СТИЛЬ КНОПКИ */
+    /* СТИЛЬ КНОПКИ (ВИПРАВЛЕНО ТОВЩИНУ) */
     .stButton>button {
-        width: 100%; /* Кнопка заповнює свою центральну колонку */
+        width: 100%;
         background: linear-gradient(90deg, #FF8C00 0%, #FF4500 100%);
         color: white;
         border-radius: 12px;
         font-weight: bold;
-        padding: 12px 24px; /* Компактна висота */
+        padding: 12px 24px;
         font-size: 18px;
         border: none;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         transition: 0.3s;
+        white-space: nowrap; /* ЗАБОРОНЯЄМО ПЕРЕНЕСЕННЯ ТЕКСТУ */
     }
     .stButton>button:hover {
         transform: translateY(-2px);
@@ -209,10 +210,10 @@ with c2:
 
 st.markdown("###")
 
-# --- КНОПКА ПО ЦЕНТРУ (КОЛОНКИ [2, 1, 2]) ---
-# Це найжорсткіший спосіб центрування в Streamlit. 
-# Кнопка буде рівно посередині сторінки, займаючи 20% ширини.
-b1, b2, b3 = st.columns([2, 1, 2])
+# --- КНОПКА ПО ЦЕНТРУ ---
+# Використовуємо [1, 1, 1] — це дає кнопці 33% ширини екрану.
+# Цього достатньо, щоб текст був в один рядок, і кнопка була по центру.
+b1, b2, b3 = st.columns([1, 1, 1])
 
 with b2:
     start_btn = st.button("Знайти ідеального кандидата", type="primary")
