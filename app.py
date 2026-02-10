@@ -63,34 +63,21 @@ st.markdown("""
         white-space: nowrap;
     }
 
-    /* --- ГОЛОВНИЙ ФІКС ДЛЯ КНОПКИ --- */
-    
-    /* 1. Центруємо контейнер кнопки */
-    div.stButton {
-        display: flex;
-        justify-content: center; /* Горизонтальний центр */
-        width: 100%;
-    }
-
-    /* 2. Стилізуємо саму кнопку */
-    div.stButton > button {
-        /* Ширина "auto" означає "ширина рівно по тексту" */
-        width: auto !important; 
-        min-width: 300px; /* Мінімальна ширина для краси */
-        
+    /* СТИЛЬ КНОПКИ */
+    .stButton>button {
+        width: 100%; /* Заповнити центральну колонку повністю */
         background: linear-gradient(90deg, #FF8C00 0%, #FF4500 100%);
         color: white;
         border-radius: 12px;
         font-weight: bold;
-        padding: 12px 30px; /* Відступи всередині */
+        padding: 12px 24px;
         font-size: 18px;
         border: none;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         transition: 0.3s;
-        white-space: nowrap; /* ЗАБОРОНА ПЕРЕНЕСЕННЯ ТЕКСТУ */
+        white-space: nowrap; /* Гарантує, що текст буде в один рядок */
     }
-    
-    div.stButton > button:hover {
+    .stButton>button:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 8px rgba(0,0,0,0.15);
         background: linear-gradient(90deg, #FFA500 0%, #FF6347 100%);
@@ -223,10 +210,14 @@ with c2:
 
 st.markdown("###")
 
-# --- КНОПКА (БЕЗ КОЛОНОК) ---
-# Ми прибрали columns(). Тепер CSS (рядок 68) сам знайде кнопку
-# і поставить її строго по центру, як логотип.
-start_btn = st.button("Знайти ідеального кандидата", type="primary")
+# --- КНОПКА ПО ЦЕНТРУ ---
+# Використовуємо колонки [3, 4, 3].
+# Це золота середина: кнопка буде рівно по центру, 
+# і ширина 40% дозволить тексту бути в один рядок.
+b1, b2, b3 = st.columns([3, 4, 3])
+
+with b2:
+    start_btn = st.button("Знайти ідеального кандидата", type="primary")
 
 if start_btn:
     st.session_state.results_df = None
