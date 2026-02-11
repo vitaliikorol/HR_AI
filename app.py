@@ -8,6 +8,7 @@ import os
 import base64
 import time
 
+# Test upload to GitHub
 # --- 1. НАЛАШТУВАННЯ СТОРІНКИ ---
 st.set_page_config(
     page_title="ШІ-асистент рекрутера",
